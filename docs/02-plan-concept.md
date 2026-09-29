@@ -1,7 +1,7 @@
-# Plan (concept v0.1): voorloop-rekenmodule
+# Plan (concept v0.2): voorloop-rekenmodule
 
-*Status: concept om samen te finetunen. Beslispunten zijn gemarkeerd met **[B1]**, **[B2]**, enzovoort
-en staan samengevat in § 11. Achtergrond en onderbouwing: [01-vooronderzoek.md](01-vooronderzoek.md).*
+*Status: concept v0.2 (29-09-2026), bijgewerkt met de antwoorden op de beslispunten. Die staan met
+het besluit in § 11; wat nog open is, staat in § 12. Achtergrond en onderbouwing: [01-vooronderzoek.md](01-vooronderzoek.md).*
 
 ## 1. Doel en succescriteria
 
@@ -20,21 +20,24 @@ De module vervangt de losse Excel-bestanden per merk.
    gemarkeerd totdat iemand ze heeft beoordeeld.
 5. Van elke verhouding is te zien waar die vandaan komt en of die gecontroleerd is.
 
-## 2. Gebruikers en situaties (aannames, te bevestigen) [B1]
+## 2. Gebruikers en situaties [B1]
 
 | Wie | Situatie | Wat is nodig |
 |---|---|---|
-| Balie en telefoon | Klant belt: "Ik heb een 724 met 650/65R42 achter, welke voorband?" | Snel zoeken, calculator, advies ideale voorband |
-| Werkplaats en buitendienst | Bij de trekker, met telefoon of tablet; typeplaatje of chassisnummer in beeld | Mobiel bruikbaar, zoeken op chassisnummer, wielaansluitmaten |
-| Beheerder(s) | Nieuwe trekker, correctie, import | Formulieren, notaties omrekenen, bron en status, wijzigingslog |
+| Kantoor (pc) | Klant belt: "Ik heb een 724 met 650/65R42 achter, welke voorband?" | Snel zoeken, calculator, advies ideale voorband, berekening opslaan en printen |
+| Vakinhoudelijk beheerder (de baas) | Correcties, normzones, beoordelen van twijfelgevallen | Beheerschermen, instellingen, reviewscherm |
+
+Het ontwerp is voor een pc-scherm. Het blijft wel bruikbaar op een tablet, maar daar optimaliseren we
+niet voor.
 
 ## 3. Scope
 
 **In versie 1 (fase 1 t/m 3, zie § 9):** zoeken, navigatie, trekkerkaart, voorloopcalculator,
-beheer, en de migratie van de vijf Excel-bestanden.
+berekeningen opslaan en printen, beheer inclusief instelbare normzones, en de migratie van alle
+bronbestanden in de repository.
 
 **Later (fase 4, 5 en verder):** bandendatabase met omgekeerd rekenen, Excel- en PDF-import,
-rapport of print, koppeling met webshop of offertes.
+koppeling met webshop of offertes.
 
 Alles onder "later" is al in het datamodel voorzien, zodat er niets omgebouwd hoeft te worden.
 
@@ -80,7 +83,8 @@ Eén pagina per type, met per uitvoering:
 
 - overbrengingsverhouding `i`, de originele notatie, de bron en de status;
 - kenmerken: transmissie, km/h, vooras, chassisbereik, bouwjaren en voorwaarden;
-- wielaansluitmaten voor en achter [B4];
+- wielaansluitmaten voor en achter [B4]. Welke velden zichtbaar zijn, is in de instellingen per
+  veld aan of uit te zetten, zodat de kaart overzichtelijk blijft;
 - notities, zoals servicebulletins of "controleer typeplaatje";
 - een knop **Bereken voorloop**, waarmee de verhouding meteen in de calculator staat.
 
@@ -102,7 +106,9 @@ Eén pagina per type, met per uitvoering:
 - waarschuwingen, bijvoorbeeld "verhouding nog niet gecontroleerd", "afrolomtrek geschat" of
   "buiten gebruikelijk bereik".
 
-Optioneel: berekening opslaan of printen voor een werkorder of klant [B7].
+**Opslaan en printen [B7]:** een berekening is op te slaan met klantnaam, referentie (bijvoorbeeld
+werkorder of kenteken), chassisnummer en opmerking. Opgeslagen berekeningen zijn terug te zoeken.
+De printweergave is één A4 met logo, trekker, banden, uitkomst, stoplicht en advies.
 
 ### 4.5 Beheer: toevoegen en wijzigen
 
@@ -129,6 +135,10 @@ Optioneel: berekening opslaan of printen voor een werkorder of klant [B7].
 
 ## 5. Rekenregels en normzones [B6]
 
+De zones zijn **instelbaar in een instellingenscherm**, zodat de vakinhoudelijk beheerder een
+grens direct kan aanpassen. Er is één standaardset en per merk (of per uitvoering) een afwijkende
+set. Wijzigingen komen in het wijzigingslog.
+
 ```
 i          = n_voorwiel / n_achterwiel                    (genormaliseerd; normaal 1,15 tot 1,70)
 voorloop % = (i × U_voor / U_achter − 1) × 100
@@ -136,7 +146,7 @@ ideale U_voor   = U_achter × (1 + doel) / i
 ideale U_achter = U_voor × i / (1 + doel)
 ```
 
-Voorstel voor de zones, per merk of uitvoering te overschrijven (bijvoorbeeld JD 1,5 tot 4 %
+Standaardwaarden bij oplevering, per merk of uitvoering te overschrijven (bijvoorbeeld JD 1,5 tot 4 %
 volgens de handleidingen):
 
 | Zone | Voorloop | Betekenis |
@@ -168,7 +178,9 @@ Merk                    bv. Fendt
               └─ standaardbanden (fabriekscombinatie, optioneel)
 
 Band           merk · profiel · maat · afrolomtrek · bron (databook + jaar) · status
-Berekening     uitvoering · voorband · achterband · uitkomst · wie · wanneer · referentie   (optioneel)
+Berekening     uitvoering · voorband · achterband · uitkomst · klant · referentie · wie · wanneer
+Instellingen   normzones (standaard + per merk) · zichtbare velden
+Reviewitem     bronbestand · tabblad · regel · probleem · voorstel · besluit
 Wijzigingslog  wie · wanneer · wat (oud → nieuw)
 ```
 
@@ -187,7 +199,25 @@ Wijzigingslog  wie · wanneer · wat (oud → nieuw)
 boutgat, naafgat of centreerdiameter, boutzitting (vlak, konisch of bol), aanhaalmoment, spacer en
 opmerking.
 
-## 7. Migratie van de vijf Excel-bestanden
+## 7. Migratie van de bronbestanden
+
+Bronnen in de repository:
+
+| Bestand | Merken | Opmerking |
+|---|---|---|
+| JOHN DEERE VOORLOOP BEREKENIG.xls | John Deere | tabellen, componenten, calculator |
+| voorloopberekening.xls | John Deere (6R) | losse calculator; de ingevulde waarden geven 23 % voorloop, dus de invoer hoort op de reviewlijst |
+| Overbrengingsverhouding Deutz.xlsx | Deutz-Fahr, SAME, Lamborghini | verhouding en wielaansluitmaten |
+| Deutz Fahr as gegevens.pdf | Deutz-Fahr, SAME, Lamborghini (recent) | met productcodes, flens, bouten, steek, naafdiameter en **grootste afrolomtrek** |
+| Overbrengverhouding Fendt.xls | Fendt (tot ongeveer 2012) | AGCO-export, omgekeerde notatie |
+| Overbrengverhoudingen en Flensmaten - Fendt trekkers nieuw.pdf | Fendt (stand nov. 2023, o.a. 700 Gen6/Gen7, 900 Gen6/7, 1000) | met **standaardbanden** voor en achter |
+| Overbrengverhouding Massey Ferguson.xlsx | Massey Ferguson | nette tabel |
+| Overbrengverhouding NewHolland_2020.xlsx | New Holland | verhouding en wielaansluitmaten |
+| Aslengtes Case Steyr + overbreng.xls | Case IH, Steyr | zelfde opzet als NH; de verborgen tabbladen zijn NH-kopieën en worden niet dubbel ingelezen |
+
+De PDF's zijn met tekstextractie uit te lezen. Kolommen lopen daarbij soms in elkaar over, dus die
+regels gaan altijd via de reviewlijst.
+
 
 1. **Per merk een inleesroutine.** Elk bestand heeft een eigen opzet: vaste kolommen bij Fendt en
    MF, blokken per tabblad bij NH, Deutz en JD.
@@ -198,39 +228,62 @@ opmerking.
    - dubbele waarden ("1,3659/1,3318") splitsen in twee uitvoeringen.
 3. **Kenmerken uit vrije tekst halen**, zoals "vanaf sn …", "tot 1441", "Dyna-6 - R42", "40 HD" en
    "KL 3/KL 4". Waar dat niet automatisch lukt, gaat het naar de reviewlijst.
-4. **Reviewlijst** met alle twijfelgevallen, elk met een verwijzing naar bestand, tabblad en regel,
-   zodat een vakspecialist ze kan beoordelen [B8].
+4. **Reviewscherm in de module** met alle twijfelgevallen, elk met bestand, tabblad, regel, de
+   originele waarde en een voorstel. De vakinhoudelijk beheerder keurt goed, past aan of verwerpt;
+   pas daarna krijgt de waarde de status "gecontroleerd" [B8].
 5. **Controle achteraf:** de aantallen per merk of tabblad in de module komen overeen met de
    Excel-bestanden, en steekproeven worden naast het origineel gelegd.
 
 ## 8. Techniek [B2] [B3]
 
-| Optie | Omschrijving | Voordelen | Nadelen |
-|---|---|---|---|
-| **A. Losse webapp (aanbevolen)** | Eigen webapplicatie in de browser op pc, tablet en telefoon | Snelle zoek- en reken-UI; schoon datamodel; later te koppelen aan de webshop via een API of widget | Eigen hosting en inlog nodig |
-| B. Plugin in polderbanden.nl (WordPress/WooCommerce) | Module binnen de bestaande website | Zelfde hosting en accounts; later makkelijk publiek te tonen | Afhankelijk van WordPress-updates; beperktere beheerschermen; interne data naast de webshop |
-| C. Low-code (Airtable, AppSheet e.d.) | Database en formulieren als SaaS | Snel neer te zetten | Slim zoeken en rekenen beperkt; kosten per gebruiker; afhankelijk van één leverancier |
+**Besluit: een WordPress-plugin op de bestaande hosting van polderbanden.nl.** Daarmee is de data
+altijd centraal en actueel, zonder aparte server. Een lokale app op de pc valt af, omdat de data dan
+niet gedeeld en bijgewerkt wordt.
 
-**Voorstel bij optie A (te bevestigen):**
+Opzet:
 
-- TypeScript met een modern webframework (Next.js of SvelteKit), responsive zodat het ook op de
-  telefoon werkt.
-- PostgreSQL met trigram-zoeken; de huidige omvang (ongeveer 2.000 uitvoeringen, later enkele
-  duizenden banden) is ruim binnen bereik.
-- De rekenkern als losse, volledig geteste module.
-- Inloggen met rollen: lezen of beheren.
-- Dagelijkse back-up en een export naar Excel, zodat de data nooit "vastzit".
+- **Eigen plugin** ("Polderbanden Voorloop"), los van het thema en van WooCommerce. Te installeren
+  als zip-bestand via *Plugins → Nieuwe plugin → Uploaden*.
+- **Eigen databasetabellen** in de bestaande WordPress-database (MySQL/MariaDB), niet in
+  WooCommerce-producten of berichten.
+- **Gebruikersscherm** op een interne pagina via een shortcode, met een snelle zoek- en
+  rekeninterface (JavaScript). Data gaat via de REST API van WordPress.
+- **Beheerschermen** in wp-admin: trekkers, instellingen (normzones, zichtbare velden), reviewlijst,
+  opgeslagen berekeningen.
+- **Toegang**: zie § 8.1.
+- **Rekenkern** op één plek, met geautomatiseerde tests (PHP en JavaScript rekenen met dezelfde
+  testgevallen).
+- **Back-up en export**: de tabellen gaan mee in de gewone WordPress-back-up; daarnaast een
+  export naar Excel/CSV.
+- **Ontwikkeling en test** gebeuren lokaal in een WordPress-testomgeving; jullie installeren de zip
+  op de live site (of eerst op een staging-site als die er is).
+
+### 8.1 Toegang: wachtwoordpagina of WordPress-accounts?
+
+Een wachtwoord op de pagina plus *noindex* houdt zoekmachines en toevallige bezoekers weg, maar
+beschermt de **data** niet. De calculator haalt zijn gegevens op via de REST API, en die
+aanroepen vallen niet onder het paginawachtwoord. Bovendien kan de baas dan niets wijzigen zonder
+extra inlog.
+
+**Voorstel:** gewone WordPress-gebruikersaccounts met twee eigen rollen:
+
+- *Voorloop gebruiker*: zoeken, rekenen, berekeningen opslaan en printen;
+- *Voorloop beheerder*: daarnaast data, normzones, zichtbare velden en reviewlijst beheren.
+
+De pagina en de API zijn alleen bereikbaar voor ingelogde gebruikers met een van die rollen;
+anderen gaan naar het inlogscherm. Pagina's krijgen *noindex*. Dit kost collega's één keer een
+account aanmaken en is niet ingewikkelder in gebruik.
 
 ## 9. Fasering
 
 | Fase | Inhoud | Resultaat |
 |---|---|---|
 | **1. Fundament** | Datamodel en database, rekenkern met tests, migratiescript, reviewlijst | Alle data genormaliseerd in de database |
-| **2. MVP** | Zoeken, navigatie, trekkerkaart (incl. wielaansluitmaten, alleen lezen), calculator met handmatige afrolomtrek, zones en advies | Collega's kunnen de Excel-bestanden loslaten |
-| **3. Beheer** | Toevoegen, bewerken en dupliceren; vier notaties; bron en status; wijzigingslog; rollen | Data groeit en blijft betrouwbaar |
+| **2. MVP** | Zoeken, navigatie, trekkerkaart (incl. wielaansluitmaten met aan/uit per veld), calculator met handmatige afrolomtrek, zones en advies, opslaan en printen | Collega's kunnen de Excel-bestanden loslaten |
+| **3. Beheer** | Toevoegen, bewerken en dupliceren; vier notaties; bron en status; wijzigingslog; instelbare normzones; reviewscherm | Data groeit en blijft betrouwbaar |
 | **4. Bandendatabase** | Afrolomtrekken per merk, profiel en maat; band kiezen uit lijst; omgekeerd rekenen ("welke voorbanden passen?"); fabriekscombinatie en relatieve methode | Minder typwerk, beter advies |
 | **5. Import** | Excel/CSV-wizard, PDF-import met controle | Snel nieuwe series toevoegen |
-| Later | Zoeken op wielaansluitmaten ("welke velg past"), rapport of print, koppeling met webshop of offertes, meetwizard | n.v.t. |
+| Later | Zoeken op wielaansluitmaten ("welke velg past"), koppeling met webshop of offertes, meetwizard | n.v.t. |
 
 ## 10. Risico's en maatregelen
 
@@ -240,19 +293,30 @@ opmerking.
 | Afrolomtrek wijkt af door belasting, spanning of slijtage | Rekenen met databookwaarden; het advies benoemt dat het om mechanische voorloop gaat en noemt de slijtage-effecten |
 | Verkeerde notatie bij invoer (Fendt omgekeerd) | Expliciete keuze van de notatie plus automatische herkenning bij waarden onder 1 |
 | Collega's blijven Excel gebruiken | De MVP bevat vanaf dag één alle data en werkt sneller dan Excel; Excel-export blijft beschikbaar |
-| Bedrijfsdata lekt uit | Private repository, inloggen verplicht, geen publieke toegang |
+| Bedrijfsdata lekt uit | Private repository, inloggen verplicht (ook voor de API), noindex |
+| Plugin botst met thema, andere plugins of WordPress-updates | Eigen tabellen en prefixen, geen afhankelijkheid van WooCommerce, eerst testen op staging |
 
-## 11. Beslispunten
+## 11. Besluiten
 
-| # | Vraag | Voorstel |
+| # | Onderwerp | Besluit |
 |---|---|---|
-| **B1** | Wie gebruikt de module, en ook op telefoon of tablet in de werkplaats of bij de klant? | Balie, werkplaats en buitendienst; mobiel bruikbaar |
-| **B2** | Platform: losse webapp, plugin in de WordPress-site of low-code? | A: losse webapp |
-| **B3** | Hosting en inloggen: waar draaien, hoe inloggen, wie mag wijzigen? | Kleine cloudserver; rollen lezen/beheren |
-| **B4** | Wielaansluitmaten (flens, steekcirkel, bouten, naafgat, aanhaalmoment) meenemen? | Ja, alleen lezen in de MVP |
-| **B5** | Bandendatabase: welke fase, welke merken eerst, en zijn er databooks of lijsten met afrolomtrekken? | Fase 4; eerst de merken die jullie het meest verkopen |
-| **B6** | Normzones: akkoord met het voorstel in § 5? Uitzonderingen per merk? | Zie § 5 |
-| **B7** | Berekening opslaan of printen, gekoppeld aan klant of werkorder? | Later; eerst alleen berekenen |
-| **B8** | Wie beoordeelt de reviewlijst na de migratie? | Iemand met de meeste vakkennis van de huidige sheets |
-| **B9** | Mogen de Excel-bestanden in de GitHub-repository? Is die privé? | Alleen in een privé-repository |
-| **B10** | Welke merken ontbreken nog en hebben prioriteit (Case IH/Steyr, Claas, Valtra, Kubota, JCB, McCormick/Landini, Zetor)? | Na de migratie via beheer of import |
+| **B1** | Gebruikers | Kantoor, op de pc |
+| **B2** | Platform | WordPress-plugin op de bestaande hosting (§ 8) |
+| **B3** | Toegang | Afgeschermd en noindex; voorstel WordPress-accounts met twee rollen (§ 8.1), nog te bevestigen |
+| **B4** | Wielaansluitmaten | Zoveel mogelijk meenemen; velden per stuk aan/uit te zetten |
+| **B5** | Bandendatabase | Niet nodig voor de start: je typt de afrolomtrek in. Afrolomtrekken die gebruikers invoeren kunnen wel meteen als bandenlijst bewaard worden; databooks volgen in fase 4 |
+| **B6** | Normzones | Voorstel akkoord als startwaarde; instelbaar door de beheerder, standaard en per merk |
+| **B7** | Opslaan en printen | Ja, in de MVP |
+| **B8** | Reviewlijst | De baas, via een reviewscherm in de module |
+| **B9** | Bronbestanden | Staan in de repository; de repository is nu nog **openbaar** (zie § 12) |
+| **B10** | Merken | Fendt, John Deere, Deutz-Fahr/SAME/Lamborghini, Massey Ferguson, New Holland, Case IH/Steyr; andere merken later via beheer of import |
+
+## 12. Nog open
+
+1. **Repository privé maken.** De repository staat op *public*, dus iedereen kan de bronbestanden
+   downloaden. Zet hem via *Settings → General → Danger Zone → Change visibility* op *private*.
+2. **Toegang (B3):** akkoord met WordPress-accounts met twee rollen in plaats van één
+   paginawachtwoord?
+3. **Hosting:** welke hostingpartij en welke PHP-versie? Mag er een eigen plugin geïnstalleerd
+   worden, en is er een staging-omgeving?
+4. **Print:** welke gegevens moeten er op de print (klantnaam, referentie, logo, opmerkingen)?
