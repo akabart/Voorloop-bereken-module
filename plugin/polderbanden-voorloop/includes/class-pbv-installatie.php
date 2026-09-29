@@ -26,6 +26,14 @@ class PBV_Installatie {
 			self::maak_tabellen();
 			update_option( 'pbv_db_versie', PBV_DB_VERSIE, false );
 		}
+		if ( get_option( 'pbv_versie' ) !== PBV_VERSIE ) {
+			// 1.0.1: de oude standaard-accentkleur (groen) wordt het huisstijlrood. Een zelf gekozen kleur blijft staan.
+			$opgeslagen = get_option( PBV_Instellingen::OPTIE );
+			if ( is_array( $opgeslagen ) && '#2f7d4f' === strtolower( $opgeslagen['kleur_accent'] ?? '' ) ) {
+				PBV_Instellingen::bewaar( array( 'kleur_accent' => '#c10e1a' ) );
+			}
+			update_option( 'pbv_versie', PBV_VERSIE, false );
+		}
 	}
 
 	public static function maak_tabellen() {

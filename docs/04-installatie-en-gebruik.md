@@ -2,7 +2,7 @@
 
 ## Installeren
 
-1. Download `dist/polderbanden-voorloop-1.0.0.zip` uit deze repository.
+1. Download `dist/polderbanden-voorloop-1.0.1.zip` uit deze repository.
 2. Ga in WordPress naar **Plugins → Nieuwe plugin → Plugin uploaden**, kies het zip-bestand en klik
    op **Nu installeren** en daarna **Activeren**.
    - Lukt uploaden niet, pak de zip dan uit en zet de map `polderbanden-voorloop` met de

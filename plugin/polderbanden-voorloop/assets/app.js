@@ -586,7 +586,7 @@
       }
       if (u.ua) {
         rij('Ideale voorband (' + fmt(u.zones.doel, 1) + '%)', fmtMm(u.idealeVoor));
-        rij('Voorband in het groene gebied', fmtMm(u.voorMin) + ' – ' + fmtMm(u.voorMax));
+        rij('Voorband in het groene gebied', fmt(Math.round(u.voorMin), 0) + ' – ' + fmtMm(u.voorMax));
       }
       if (u.uv) {
         rij('Ideale achterband (' + fmt(u.zones.doel, 1) + '%)', fmtMm(u.idealeAchter));

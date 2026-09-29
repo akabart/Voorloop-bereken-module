@@ -44,7 +44,7 @@ class PBV_Instellingen {
 			'zones_per_merk'       => array(),
 			'velden'               => array_fill_keys( array_keys( self::VELDEN ), true ),
 			'kleur_primair'        => '#1f2a2e',
-			'kleur_accent'         => '#2f7d4f',
+			'kleur_accent'         => '#c10e1a',
 			'bedrijfsnaam'         => 'Polderbanden.nl',
 			'bedrijfsregel'        => 'Creil (NOP) · info@polderbanden.nl · +31 (0)85 483 2790',
 			'logo_url'             => '',

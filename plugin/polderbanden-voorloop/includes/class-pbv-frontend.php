@@ -50,7 +50,7 @@ class PBV_Frontend {
 			'nonce' => is_user_logged_in() ? wp_create_nonce( 'wp_rest' ) : '',
 		) );
 		$primair = sanitize_hex_color( PBV_Instellingen::get( 'kleur_primair' ) ) ?: '#1f2a2e';
-		$accent  = sanitize_hex_color( PBV_Instellingen::get( 'kleur_accent' ) ) ?: '#2f7d4f';
+		$accent  = sanitize_hex_color( PBV_Instellingen::get( 'kleur_accent' ) ) ?: '#c10e1a';
 		return sprintf(
 			'<div id="pbv-app" class="pbv" style="--pbv-primair:%1$s;--pbv-accent:%2$s"><noscript>Deze module heeft JavaScript nodig.</noscript><div class="pbv-laden">Laden…</div></div>',
 			esc_attr( $primair ),

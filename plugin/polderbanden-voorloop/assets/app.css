@@ -2,7 +2,7 @@
 
 .pbv {
   --pbv-primair: #1f2a2e;
-  --pbv-accent: #2f7d4f;
+  --pbv-accent: #c10e1a;
   --pbv-tekst: #1f2a2e;
   --pbv-zacht: #5f6b70;
   --pbv-lijn: #e3e6e8;
@@ -22,12 +22,24 @@
 /* Breek uit een smalle themakolom: tot 1180px breed en gecentreerd in het venster, ongeacht de breedte van
    de omringende kolom (50% van de kolom min de halve eigen breedte). Het id wint van themaregels met !important. */
 #pbv-app.pbv {
+  box-sizing: border-box;
   width: var(--pbv-breedte);
   max-width: none !important;
   margin-left: calc(50% - var(--pbv-breedte) / 2) !important;
   margin-right: 0 !important;
+  margin-top: 1.5em;
   margin-bottom: 3em;
+  /* Eigen wit vlak boven op de themaachtergrond, zodat een bannerfoto of donkere kop de module niet
+     onleesbaar maakt. */
+  position: relative;
+  z-index: 5;
+  isolation: isolate;
+  background: var(--pbv-wit);
+  padding: 1em 1.5em 1.5em;
+  border-radius: var(--pbv-radius);
+  box-shadow: 0 1px 3px rgba(0,0,0,.06);
 }
+@media (max-width: 600px) { #pbv-app.pbv { padding: .5em 1em 1em; } }
 .pbv *, .pbv *::before, .pbv *::after { box-sizing: border-box; }
 .pbv h1, .pbv h2, .pbv h3 { color: var(--pbv-primair); line-height: 1.25; margin: 0 0 .6em; font-weight: 600; letter-spacing: -.01em; }
 .pbv h1 { font-size: 1.6em; }
@@ -154,9 +166,9 @@
 .pbv-schaal-as { position: relative; height: 1.4em; font-size: .72em; color: var(--pbv-zacht); }
 .pbv-schaal-as span { position: absolute; transform: translateX(-50%); white-space: nowrap; }
 .pbv-advies { font-size: .9em; }
-.pbv-advies dl { display: grid; grid-template-columns: auto 1fr; gap: .25em 1em; margin: .6em 0 0; }
+.pbv-advies dl { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: .25em 1em; margin: .6em 0 0; }
 .pbv-advies dt { color: var(--pbv-zacht); }
-.pbv-advies dd { margin: 0; text-align: right; font-variant-numeric: tabular-nums; }
+.pbv-advies dd { margin: 0; text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
 .pbv-band { position: relative; }
 .pbv-band .pbv-resultaten { top: 100%; }
 

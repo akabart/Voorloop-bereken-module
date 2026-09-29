@@ -134,7 +134,7 @@ class PBV_Admin {
 		check_admin_referer( 'pbv_opslaan' );
 		$w = array(
 			'kleur_primair' => sanitize_hex_color( wp_unslash( $_POST['kleur_primair'] ?? '' ) ) ?: '#1f2a2e',
-			'kleur_accent'  => sanitize_hex_color( wp_unslash( $_POST['kleur_accent'] ?? '' ) ) ?: '#2f7d4f',
+			'kleur_accent'  => sanitize_hex_color( wp_unslash( $_POST['kleur_accent'] ?? '' ) ) ?: '#c10e1a',
 			'bedrijfsnaam'  => sanitize_text_field( wp_unslash( $_POST['bedrijfsnaam'] ?? '' ) ),
 			'bedrijfsregel' => sanitize_text_field( wp_unslash( $_POST['bedrijfsregel'] ?? '' ) ),
 			'logo_url'      => esc_url_raw( wp_unslash( $_POST['logo_url'] ?? '' ) ),
