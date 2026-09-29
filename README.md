@@ -5,11 +5,11 @@ van de voorloop bij een bandencombinatie. Vervangt de losse Excel-bestanden per 
 
 ## Status
 
-**Versie 1.1.0: fase 1 t/m 3 gebouwd.** Dat omvat zoeken, navigatie, trekkerkaart, calculator,
+**Versie 1.1.1: fase 1 t/m 3 gebouwd.** Dat omvat zoeken, navigatie, trekkerkaart, calculator,
 opslaan en printen, en beheer (reviewlijst, normzones, zichtbare velden, bandenlijst, trekkers
 toevoegen en bewerken, wijzigingslog). Alle bronbestanden zijn ingelezen.
 
-- **Installeren:** `dist/polderbanden-voorloop-1.1.0.zip`, zie
+- **Installeren:** `dist/polderbanden-voorloop-1.1.1.zip`, zie
   [docs/04-installatie-en-gebruik.md](docs/04-installatie-en-gebruik.md).
 
 | Map / document | Inhoud |

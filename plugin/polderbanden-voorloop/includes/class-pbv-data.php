@@ -524,6 +524,20 @@ class PBV_Data {
 		return $telling;
 	}
 
+	/** Verwijdert meerdere banden tegelijk (bijvoorbeeld een verkeerde import). */
+	public static function banden_verwijderen( array $ids ) {
+		global $wpdb;
+		$ids = array_values( array_filter( array_unique( $ids ) ) );
+		if ( ! $ids ) {
+			return 0;
+		}
+		$lijst  = implode( ',', $ids );
+		$oud    = $wpdb->get_results( 'SELECT maat, merk, profiel, afrolomtrek, bron FROM ' . self::t( 'banden' ) . " WHERE id IN ($lijst)", ARRAY_A ); // phpcs:ignore
+		$aantal = (int) $wpdb->query( 'DELETE FROM ' . self::t( 'banden' ) . " WHERE id IN ($lijst)" ); // phpcs:ignore
+		self::log( 'band', 0, "$aantal banden in één keer verwijderd", $oud, null );
+		return $aantal;
+	}
+
 	public static function band_verwijderen( $id ) {
 		global $wpdb;
 		$oud = $wpdb->get_row( $wpdb->prepare( 'SELECT * FROM ' . self::t( 'banden' ) . ' WHERE id = %d', $id ), ARRAY_A ); // phpcs:ignore

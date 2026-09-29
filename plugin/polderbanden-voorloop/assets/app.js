@@ -1042,9 +1042,22 @@
     var tbody = h('tbody');
     el.appendChild(h('div', { class: 'pbv-veld' }, zoek));
     el.appendChild(h('table', {}, h('thead', {}, h('tr', {}, ['Maat', 'Merk', 'Profiel', 'Afrolomtrek', 'Bron', ''].map(function (k) { return h('th', {}, k); }))), tbody));
+    var bulk = h('div', { class: 'pbv-acties', style: 'margin:0 0 .8em' });
+    el.insertBefore(bulk, tbody.parentNode);
     function toon() {
-      leeg(tbody);
-      (zoek.value.trim() ? zoekBanden(zoek.value) : S.banden).forEach(function (b) { tbody.appendChild(bandRij(b)); });
+      leeg(tbody); leeg(bulk);
+      var lijst = zoek.value.trim() ? zoekBanden(zoek.value) : S.banden;
+      lijst.forEach(function (b) { tbody.appendChild(bandRij(b)); });
+      if (zoek.value.trim() && lijst.length > 1) {
+        bulk.appendChild(h('span', { class: 'pbv-zacht pbv-klein', style: 'align-self:center' }, lijst.length + ' banden gevonden'));
+        bulk.appendChild(h('button', {
+          class: 'pbv-gevaar pbv-klein', onclick: function () {
+            if (!confirm('Alle ' + lijst.length + ' gevonden banden verwijderen? Dit staat daarna in het wijzigingslog.')) return;
+            api('POST', '/banden/verwijderen', { ids: lijst.map(function (b) { return b.id; }) })
+              .then(function (r) { S.banden = r.banden; route(); });
+          }
+        }, 'Verwijder deze ' + lijst.length + ' banden'));
+      }
     }
     zoek.addEventListener('input', toon);
     toon();

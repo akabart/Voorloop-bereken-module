@@ -12,8 +12,13 @@ en waarvan SW en OD passen bij de maat (650/65 R38: ongeveer 650 breed en 1810 m
 het script onafhankelijk van de kolomvolgorde of opmaak van de fabrikant, en voorkomt dat een maat de
 gegevens van de buurregel krijgt. Daarna volgt de controle van RC tegen de maat (bandmaat.plausibel).
 
+Standaard komen alleen trekkerbanden in de CSV: profielen waarvan de catalogus als toepassing een trekker
+met voorwielaandrijving noemt (Tractor MFWD / Tractor 4WD) en geen aanhanger, werktuig of pers. Alleen
+bij die trekkers speelt voorloop. Met --alle komen alle banden mee. Noemt de catalogus geen toepassing,
+dan blijft de band staan met een opmerking.
+
 Gebruik:
-  python3 pdf_naar_csv.py <pdf> --merk Eurogrip [--uit banden.csv] [--paginas 16-50] [--bron "..."]
+  python3 pdf_naar_csv.py <pdf> --merk Eurogrip [--uit banden.csv] [--paginas 16-50] [--bron "..."] [--alle]
 """
 import argparse
 import csv
@@ -36,6 +41,10 @@ MAAT = re.compile(
 )
 GETAL = re.compile(r'(?<![\d.])\d{2,4}(?:\.\d+)?(?![\d.])')
 ZOEKBEREIK = 4  # regels boven en onder de maat
+
+# Toepassingen (pictogramteksten in de catalogus). Trekker met aangedreven vooras = voorloop is van belang.
+TREKKER = re.compile(r'Tractor\s+(MFWD|4WD)', re.I)
+GEEN_TREKKERBAND = re.compile(r'Trailer|Semi|Wagon|Plough|Planter|Seeder|Baler|Spreader|Tanker|Irrigat|Harvester|Combine', re.I)
 
 
 def kwartet(getallen):
@@ -63,6 +72,26 @@ def profiel_uit_kop(regels):
     return None
 
 
+def toepassing_uit_pagina(regels):
+    """Pictogramteksten na 'TRA Code Speed Index' tot de tabelkop, of None als de pagina die niet heeft."""
+    for i, r in enumerate(regels):
+        if 'TRA Code' in r:
+            delen = [r.split('Speed Index', 1)[-1]]
+            for volgende in regels[i + 1:i + 3]:
+                if re.search(r'Unloaded|Rim|Size|Dimension|Recommended', volgende):
+                    break
+                delen.append(volgende)
+            return ' '.join(' '.join(delen).split())
+    return None
+
+
+def is_trekkerband(toepassing):
+    """True/False, of None als de toepassing onbekend is."""
+    if not toepassing:
+        return None
+    return bool(TREKKER.search(toepassing)) and not GEEN_TREKKERBAND.search(toepassing)
+
+
 def profiel_uit_regel(regel, maat):
     """Terugval als de kop een afbeelding is: de profielcode direct na de maat ('500/45-20 TC09 ...').
     Velgcodes (W12, DW16L) en getallen tellen niet mee."""
@@ -74,12 +103,18 @@ def profiel_uit_regel(regel, maat):
 
 def lees(pdf, paginas=None):
     rijen, twijfel = [], []
+    toepassing_per_profiel = {}
     with pdfplumber.open(pdf) as doc:
         for nr, pagina in enumerate(doc.pages, start=1):
             if paginas and nr not in paginas:
                 continue
             regels = (pagina.extract_text() or '').split('\n')
             profiel = profiel_uit_kop(regels)
+            toepassing = toepassing_uit_pagina(regels)
+            if profiel and toepassing:
+                toepassing_per_profiel[profiel] = toepassing
+            elif profiel:  # vervolgpagina ('(contd)'): toepassing van de eerste pagina van dit profiel
+                toepassing = toepassing_per_profiel.get(profiel)
             getallen = [[round(float(g)) for g in GETAL.findall(MAAT.sub(' ', r))] for r in regels]
             kwartetten = {i: kwartet(g) for i, g in enumerate(getallen)}
             gebruikt = set()
@@ -104,11 +139,11 @@ def lees(pdf, paginas=None):
                 profiel = profiel_uit_kop(regels) or profiel_uit_regel(regels[i], maat)
                 if not gevonden:
                     twijfel.append({'pagina': nr, 'maat': naam, 'profiel': profiel or '', 'reden': 'geen afrolomtrek gevonden bij deze maat',
-                                    'regel': regels[i].strip()[:90]})
+                                    'regel': regels[i].strip()[:90], 'toepassing': toepassing})
                     continue
                 j, (_, sw, od, slr, rc) = gevonden
                 rijen.append({'pagina': nr, 'maat': naam, 'profiel': profiel or '', 'sw': sw, 'od': od, 'slr': slr,
-                              'afrolomtrek': rc, 'afstand': j - i, 'regel': regels[i].strip()[:90]})
+                              'afrolomtrek': rc, 'afstand': j - i, 'regel': regels[i].strip()[:90], 'toepassing': toepassing})
     return rijen, twijfel
 
 
@@ -129,9 +164,19 @@ def main():
     ap.add_argument('--uit', help='CSV-bestand (standaard: naast de PDF, <naam>.csv)')
     ap.add_argument('--paginas', help='bijvoorbeeld 16-50,52')
     ap.add_argument('--bron', help='tekst voor de kolom bron (standaard: bestandsnaam van de PDF)')
+    ap.add_argument('--alle', action='store_true', help='ook banden voor aanhangers, werktuigen, persen enz.')
     a = ap.parse_args()
 
     rijen, twijfel = lees(a.pdf, paginabereik(a.paginas))
+    if not a.alle:
+        weg = [r for r in rijen if is_trekkerband(r['toepassing']) is False]
+        weg_profielen = sorted({(r['profiel'] or '?', r['toepassing']) for r in weg})
+        rijen = [r for r in rijen if is_trekkerband(r['toepassing']) is not False]
+        twijfel = [t for t in twijfel if is_trekkerband(t['toepassing']) is not False]
+        print(f'{len(weg)} banden van {len(weg_profielen)} profielen overgeslagen (geen trekkerband; --alle om ze mee te nemen):')
+        for prof, toep in weg_profielen:
+            print(f'  {prof:<18} {toep}')
+        print()
     bron = a.bron or Path(a.pdf).name
     uit = Path(a.uit) if a.uit else Path(a.pdf).with_suffix('.csv')
 
@@ -149,7 +194,7 @@ def main():
 
     with open(uit, 'w', newline='', encoding='utf-8-sig') as f:
         w = csv.writer(f, delimiter=';')
-        w.writerow(['maat', 'merk', 'profiel', 'afrolomtrek', 'buitendiameter', 'bron', 'controle'])
+        w.writerow(['maat', 'merk', 'profiel', 'afrolomtrek', 'buitendiameter', 'toepassing', 'bron', 'controle'])
         for r in uniek:
             oordeel, factor = plausibel(r['maat'], r['afrolomtrek'])
             opm = []
@@ -159,9 +204,12 @@ def main():
                 opm.append('meerdere afrolomtrekken voor deze maat')
             if not r['profiel']:
                 opm.append('profiel onbekend')
-            w.writerow([r['maat'], a.merk, r['profiel'], r['afrolomtrek'], r['od'], f'{bron} p.{r["pagina"]}', '; '.join(opm)])
+            if not a.alle and is_trekkerband(r['toepassing']) is None:
+                opm.append('toepassing onbekend, controleer of dit een trekkerband is')
+            w.writerow([r['maat'], a.merk, r['profiel'], r['afrolomtrek'], r['od'], r['toepassing'] or '', f'{bron} p.{r["pagina"]}', '; '.join(opm)])
 
     n_opm = sum(1 for r in uniek if plausibel(r['maat'], r['afrolomtrek'])[0] != 'ok' or not r['profiel']
+                or (not a.alle and is_trekkerband(r['toepassing']) is None)
                 or len(per_band[(r['maat'], r['profiel'])]) > 1)
     print(f'{len(uniek)} banden geschreven naar {uit} ({n_opm} met een opmerking in de kolom controle)')
     if twijfel:

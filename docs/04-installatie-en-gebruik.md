@@ -2,7 +2,7 @@
 
 ## Installeren
 
-1. Download `dist/polderbanden-voorloop-1.1.0.zip` uit deze repository.
+1. Download `dist/polderbanden-voorloop-1.1.1.zip` uit deze repository.
 2. Ga in WordPress naar **Plugins → Nieuwe plugin → Plugin uploaden**, kies het zip-bestand en klik
    op **Nu installeren** en daarna **Activeren**.
    - Lukt uploaden niet, pak de zip dan uit en zet de map `polderbanden-voorloop` met de
@@ -81,8 +81,15 @@ deze repository:
    gecontroleerde CSV naast de PDF.
 3. Importeer die CSV zoals hierboven.
 
-Als voorbeeld staat `bronnen/banden/eurogrip-2025-05.csv` klaar: 305 banden uit de Eurogrip-catalogus
-van mei 2025.
+Alleen trekkerbanden komen in de CSV: banden voor trekkers met een aangedreven vooras. Banden voor
+aanhangers, werktuigen, persen, pootmachines en dergelijke worden overgeslagen.
+
+Als voorbeeld staat `bronnen/banden/eurogrip-2025-05.csv` klaar: 146 trekkerbanden uit de
+Eurogrip-catalogus van mei 2025.
+
+**Verkeerde import terugdraaien.** Zoek in de bandenlijst op bijvoorbeeld het merk (`eurogrip`). Onder
+het zoekveld verschijnt **Verwijder deze N banden**; daarmee verwijder je alle gevonden banden in één
+keer. Dat staat in het wijzigingslog. Importeer daarna de juiste CSV.
 
 ## Data exporteren
 

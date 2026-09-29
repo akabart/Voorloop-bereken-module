@@ -6,7 +6,16 @@ description: Zet een banden-PDF of Excel-lijst van een fabrikant (databook, tech
 # Banden importeren uit een PDF of Excel-lijst
 
 Doel: een CSV die zonder verrassingen in de plugin te importeren is. Elke afrolomtrek moet
-aantoonbaar uit de bron komen. **Nooit een afrolomtrek schatten of berekenen.** Een band zonder
+aantoonbaar uit de bron komen.
+
+**Alleen trekkerbanden.** Voorloop speelt alleen bij trekkers met een aangedreven vooras. Neem dus
+de aangedreven banden voor trekkers mee (voor en achter, ook smalle rijgewasbanden en compacte
+trekkers). Laat weg: banden voor aanhangers, werktuigen, pakpersen, zaai- en pootmachines,
+spuiten, maaidorsers, beregening en shovels, en geleide voorbanden van 2WD-trekkers (F-2, TF).
+Een catalogus noemt de toepassing meestal met pictogrammen ("Tractor MFWD", "Tractor 4WD",
+"Trailer"); het script filtert daarop. Staat er geen toepassing, beoordeel het profiel dan zelf
+(TRA-code R-1, R-1W of R-2 en een beschrijving voor trekkers betekent: trekkerband). Alleen als
+de gebruiker er uitdrukkelijk om vraagt, neem je met `--alle` alle banden mee. **Nooit een afrolomtrek schatten of berekenen.** Een band zonder
 afrolomtrek in de bron hoort niet in de CSV.
 
 ## Het CSV-formaat
@@ -14,8 +23,8 @@ afrolomtrek in de bron hoort niet in de CSV.
 Puntkomma als scheidingsteken, UTF-8 met BOM (dan opent Excel het goed):
 
 ```
-maat;merk;profiel;afrolomtrek;buitendiameter;bron;controle
-650/65 R38;Eurogrip;AR 600;5569;1834;Eurogrip technische catalogus mei 2025 p.18;
+maat;merk;profiel;afrolomtrek;buitendiameter;toepassing;bron;controle
+650/65 R38;Eurogrip;AR 600;5569;1834;Tractor MFWD Tractor 4WD;Eurogrip technische catalogus mei 2025 p.18;
 ```
 
 | Kolom | Inhoud |
@@ -25,6 +34,7 @@ maat;merk;profiel;afrolomtrek;buitendiameter;bron;controle
 | `profiel` | Profielnaam zoals in de kop van de catalogus: `AR 600`, `TR 45`, `Traxion+`. |
 | `afrolomtrek` | In mm, geheel getal. Bron-kolommen heten o.a. *Rolling circumference*, *RC*, *RCI*, *C.R.*, *Abrollumfang*, *Circonférence de roulement*. Staat de waarde alleen in inch, reken om (× 25,4) en vermeld dat in `controle`. |
 | `buitendiameter` | OD in mm; alleen ter controle, de plugin gebruikt hem niet. |
+| `toepassing` | Toepassing volgens de catalogus; alleen ter controle. |
 | `bron` | Documentnaam en paginanummer, zodat elke waarde terug te vinden is. |
 | `controle` | Leeg als alles klopt, anders een korte toelichting. De plugin toont deze tekst in het importvoorbeeld. |
 
@@ -44,7 +54,9 @@ De plugin leest ook `,`- of tab-gescheiden bestanden en Engelse kolomnamen (`siz
    ```
    Het script zoekt bij elke bandmaat vier getallen die natuurkundig bij elkaar horen (breedte,
    buitendiameter, straal, afrolomtrek) en bij de maat passen. Daardoor werkt het bij de meeste
-   catalogi zonder aanpassing. Het drukt af welke maten geen afrolomtrek kregen.
+   catalogi zonder aanpassing. Het drukt af welke profielen het als "geen trekkerband" heeft
+   overgeslagen, met hun toepassing, en welke maten geen afrolomtrek kregen. Controleer die
+   overgeslagen profielen: staat daar een trekkerband tussen, neem hem dan alsnog mee.
    Bij een Excel-lijst: lees die met `openpyxl`, zoek de kolommen zelf en schrijf hetzelfde formaat
    (gebruik `normaliseer()` en `plausibel()` uit `bandmaat.py`).
 
@@ -62,6 +74,8 @@ De plugin leest ook `,`- of tab-gescheiden bestanden en Engelse kolomnamen (`siz
      een afrolomtrek op de pagina, voeg de rij dan met de hand toe.
    - **Een steekproef van ongeveer 10 gewone rijen** verspreid over de catalogus, tegen de
      gerenderde pagina. Vind je daar een fout, controleer dan de hele tabel van dat profiel.
+   - **Rijen met "toepassing onbekend"**: beoordeel of het een trekkerband is en verwijder de rij
+     als dat niet zo is.
    - **Profielnamen**: als de kop van een pagina een afbeelding is, vult het script de code uit de
      tabel in of laat het profiel leeg. Vul lege profielen in vanaf de gerenderde pagina.
 

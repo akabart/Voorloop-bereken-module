@@ -25,6 +25,7 @@ class PBV_Rest {
 		self::route( '/banden', 'POST', array( __CLASS__, 'band_toevoegen' ), $gebruiker );
 		self::route( '/banden/(?P<id>\d+)', 'DELETE', array( __CLASS__, 'band_verwijderen' ), $beheer );
 		self::route( '/banden/import', 'POST', array( __CLASS__, 'banden_importeren' ), $beheer );
+		self::route( '/banden/verwijderen', 'POST', array( __CLASS__, 'banden_verwijderen' ), $beheer );
 		self::route( '/berekeningen', 'GET', array( __CLASS__, 'berekeningen' ), $gebruiker );
 		self::route( '/berekeningen', 'POST', array( __CLASS__, 'berekening_opslaan' ), $gebruiker );
 		self::route( '/berekeningen/(?P<id>\d+)', 'GET', array( __CLASS__, 'berekening' ), $gebruiker );
@@ -109,6 +110,12 @@ class PBV_Rest {
 		$invoer = $r->get_json_params() ?: array();
 		$uitslag = PBV_Data::banden_importeren( (array) ( $invoer['rijen'] ?? array() ), (string) ( $invoer['bestand'] ?? '' ) );
 		return is_wp_error( $uitslag ) ? $uitslag : $uitslag + array( 'banden' => PBV_Data::banden() );
+	}
+
+	public static function banden_verwijderen( WP_REST_Request $r ) {
+		$invoer = $r->get_json_params() ?: array();
+		$aantal = PBV_Data::banden_verwijderen( array_map( 'intval', (array) ( $invoer['ids'] ?? array() ) ) );
+		return array( 'verwijderd' => $aantal, 'banden' => PBV_Data::banden() );
 	}
 
 	public static function band_verwijderen( WP_REST_Request $r ) {
