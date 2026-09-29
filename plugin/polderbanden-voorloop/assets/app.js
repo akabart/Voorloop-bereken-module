@@ -509,13 +509,12 @@
 
   function bandInvoer(kant, c, bijWijziging) {
     var titel = kant === 'voor' ? 'Voorband' : 'Achterband';
-    var tekst = h('input', { type: 'text', value: c[kant].band, placeholder: 'Maat, merk of profiel', autocomplete: 'off' });
+    var tekst = h('input', { type: 'text', value: c[kant].band, placeholder: 'Maat, merk of profiel, bijv. 6506538', autocomplete: 'off' });
     var rc = h('input', { type: 'text', inputmode: 'numeric', value: c[kant].rc, placeholder: 'mm' });
     var lijst = h('div', { class: 'pbv-resultaten pbv-verborgen' });
     function filter() {
-      var q = norm(tekst.value);
       leeg(lijst);
-      var treffers = S.banden.filter(function (b) { return q && norm(b.maat + b.merk + b.profiel).indexOf(q) >= 0; }).slice(0, 12);
+      var treffers = zoekBanden(tekst.value).slice(0, 30);
       if (!treffers.length) { lijst.classList.add('pbv-verborgen'); return; }
       lijst.classList.remove('pbv-verborgen');
       treffers.forEach(function (b) {
@@ -542,6 +541,25 @@
   }
 
   function bandNaam(b) { return [b.maat, b.merk, b.profiel].filter(Boolean).join(' '); }
+
+  /* Banden zoeken zoals aan de balie: '650/65 R38', '65065r38' en '6506538' vinden allemaal dezelfde maat.
+     Elk woord moet ergens passen; de maat is ook te vinden als alleen de cijfers ('18.4 R38' -> 18438). */
+  function bandCijfers(maat) { return String(maat || '').replace(/[^0-9]/g, ''); }
+  function bandPast(b, q) {
+    var woorden = String(q || '').split(/\s+/).map(norm).filter(Boolean);
+    if (!woorden.length) return false;
+    var hooiberg = [norm(b.maat), bandCijfers(b.maat), norm(b.merk), norm(b.profiel)].join(' ');
+    return woorden.every(function (w) { return hooiberg.indexOf(w) >= 0; }) ||
+      norm(b.maat + b.merk + b.profiel).indexOf(norm(q)) >= 0;
+  }
+  function zoekBanden(q) {
+    var cijfers = bandCijfers(q);
+    return S.banden.filter(function (b) { return bandPast(b, q); }).sort(function (a, b) {
+      // Exacte maat eerst, daarna op maat en merk
+      var ea = bandCijfers(a.maat) === cijfers ? 0 : 1, eb = bandCijfers(b.maat) === cijfers ? 0 : 1;
+      return ea - eb || bandNaam(a).localeCompare(bandNaam(b), 'nl');
+    });
+  }
 
   function schaal(uitkomst) {
     var z = uitkomst.zones, lo = Math.min(-1, z.min - 1), hi = Math.max(8, z.max + 1.5);
@@ -1019,8 +1037,17 @@
             .then(function (r) { S.banden = r.banden; route(); }).catch(function (e) { status.appendChild(melding(e.message, 'fout')); });
         }
       }, 'Toevoegen')));
-    el.appendChild(h('table', {}, h('thead', {}, h('tr', {}, ['Maat', 'Merk', 'Profiel', 'Afrolomtrek', 'Bron', ''].map(function (k) { return h('th', {}, k); }))),
-      h('tbody', {}, S.banden.map(function (b) {
+    var zoek = h('input', { type: 'search', placeholder: 'Zoek in de bandenlijst, bijv. 6506538 of michelin' });
+    var tbody = h('tbody');
+    el.appendChild(h('div', { class: 'pbv-veld' }, zoek));
+    el.appendChild(h('table', {}, h('thead', {}, h('tr', {}, ['Maat', 'Merk', 'Profiel', 'Afrolomtrek', 'Bron', ''].map(function (k) { return h('th', {}, k); }))), tbody));
+    function toon() {
+      leeg(tbody);
+      (zoek.value.trim() ? zoekBanden(zoek.value) : S.banden).forEach(function (b) { tbody.appendChild(bandRij(b)); });
+    }
+    zoek.addEventListener('input', toon);
+    toon();
+    function bandRij(b) {
         return h('tr', {}, h('td', {}, b.maat), h('td', {}, b.merk), h('td', {}, b.profiel), h('td', { class: 'pbv-getal' }, fmtMm(b.afrolomtrek)),
           h('td', { class: 'pbv-klein pbv-zacht' }, b.bron || ''),
           h('td', {}, h('button', {
@@ -1028,7 +1055,7 @@
               if (confirm('Band ' + bandNaam(b) + ' verwijderen?')) api('DELETE', '/banden/' + b.id).then(function (r) { S.banden = r.banden; route(); });
             }
           }, 'Verwijderen')));
-      }))));
+    }
   }
 
   function beheerLog(el) {
