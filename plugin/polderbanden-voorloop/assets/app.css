@@ -102,6 +102,14 @@
 .pbv-tegel:hover { border-color: var(--pbv-accent); }
 .pbv-tegel strong { display: block; color: var(--pbv-primair); font-weight: 600; }
 .pbv-tegel span { color: var(--pbv-zacht); font-size: .85em; }
+.pbv-tegels.pbv-compact { grid-template-columns: repeat(auto-fill, minmax(170px, 1fr)); gap: .6em; }
+.pbv-tegels.pbv-compact .pbv-tegel { padding: .65em .9em; }
+.pbv-tegel .pbv-badge { margin-left: .4em; }
+.pbv-notities { margin-top: .6em; }
+.pbv-notities p { margin: 0 0 .4em; padding-left: .8em; border-left: 2px solid var(--pbv-lijn); }
+/* Opsommingstekens en vinkjes van het thema niet overnemen */
+.pbv ul, .pbv ol, .pbv li { list-style: none !important; background-image: none !important; }
+.pbv li::before, .pbv li::after { content: none !important; display: none !important; }
 .pbv-lijst { list-style: none; margin: 0; padding: 0; columns: 3 220px; column-gap: 2em; }
 .pbv-lijst li { break-inside: avoid; margin: 0; padding: .3em 0; border-bottom: 1px solid var(--pbv-vlak); }
 .pbv-lijst li a { display: flex; justify-content: space-between; gap: .5em; }
@@ -170,6 +178,14 @@
 .pbv-advies dt { color: var(--pbv-zacht); }
 .pbv-advies dd { margin: 0; text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
 .pbv-band { position: relative; }
+.pbv-passend { border: 1px solid var(--pbv-lijn); border-radius: var(--pbv-radius); padding: .5em .6em .6em; margin: 0 0 .5em; }
+.pbv-passend-kop { display: flex; justify-content: space-between; gap: 1em; font-size: .85em; font-weight: 500; color: var(--pbv-tekst); padding: 0 .3em .2em; }
+.pbv-passend-kop span { color: var(--pbv-zacht); font-weight: 400; }
+.pbv-passend table { margin: 0 0 .3em; font-size: .88em; }
+.pbv-passend td { padding: .35em .3em; }
+.pbv-passend tr.klikbaar:focus { outline: 2px solid var(--pbv-accent); outline-offset: -2px; }
+.pbv-passend tr.gekozen td { background: var(--pbv-vlak); font-weight: 600; }
+.pbv-passend tr:last-child td { border-bottom: 0; }
 .pbv-band .pbv-resultaten { top: 100%; }
 
 /* Inlog */

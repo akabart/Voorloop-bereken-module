@@ -343,9 +343,11 @@
     hoofd.appendChild(h('div', { class: 'pbv-pad' }, h('a', { href: '#/' }, 'Merken'), ' › ', h('a', { href: '#/merk/' + r.merk.id }, r.merk.naam), ' › '));
     hoofd.appendChild(h('h1', {}, r.serie.naam));
     var types = r.serie.types.slice().sort(function (a, b) { return a.naam.localeCompare(b.naam, 'nl', { numeric: true }); });
-    hoofd.appendChild(h('ul', { class: 'pbv-lijst' }, types.map(function (t) {
-      return h('li', {}, h('a', { href: '#/type/' + t.id }, t.naam,
-        h('span', {}, t.n > 1 ? t.n + ' uitv.' : '', t.twijfel ? ' ·  controleren' : '')));
+    hoofd.appendChild(h('div', { class: 'pbv-tegels pbv-compact' }, types.map(function (t) {
+      return h('a', { class: 'pbv-tegel', href: '#/type/' + t.id },
+        h('strong', {}, t.naam),
+        h('span', {}, t.n === 1 ? '1 uitvoering' : t.n + ' uitvoeringen'),
+        t.twijfel ? h('span', { class: 'pbv-badge twijfel' }, 'controleren') : null);
     })));
   }
 
@@ -375,7 +377,7 @@
       if (t.notities && t.notities.length) {
         links.appendChild(h('details', { class: 'pbv-blok pbv-vlak' },
           h('summary', {}, 'Aandachtspunten (' + t.notities.length + ')'),
-          h('ul', { class: 'pbv-klein' }, t.notities.map(function (n) { return h('li', {}, n); }))));
+          h('div', { class: 'pbv-klein pbv-notities' }, t.notities.map(function (n) { return h('p', {}, n); }))));
       }
       var uitvoeringen = t.uitvoeringen.slice();
       var gekozen = uitvoeringen.find(function (u) { return u.id === uitvId; }) ||
@@ -512,32 +514,63 @@
     var tekst = h('input', { type: 'text', value: c[kant].band, placeholder: 'Maat, merk of profiel, bijv. 6506538', autocomplete: 'off' });
     var rc = h('input', { type: 'text', inputmode: 'numeric', value: c[kant].rc, placeholder: 'mm' });
     var lijst = h('div', { class: 'pbv-resultaten pbv-verborgen' });
+    var treffers = [], actief = -1;
+    function kies(b) {
+      tekst.value = bandNaam(b); rc.value = String(b.afrolomtrek);
+      c[kant].band = tekst.value; c[kant].rc = rc.value;
+      sluit();
+      bijWijziging();
+    }
+    function sluit() { lijst.classList.add('pbv-verborgen'); actief = -1; }
+    function markeer(i) {
+      actief = i;
+      var links = lijst.querySelectorAll('a');
+      links.forEach(function (l, j) { l.classList.toggle('actief', j === i); });
+      if (links[i]) links[i].scrollIntoView({ block: 'nearest' });
+    }
     function filter() {
       leeg(lijst);
-      var treffers = zoekBanden(tekst.value).slice(0, 30);
+      actief = -1;
+      treffers = zoekBanden(tekst.value).slice(0, 30);
       if (!treffers.length) { lijst.classList.add('pbv-verborgen'); return; }
       lijst.classList.remove('pbv-verborgen');
-      treffers.forEach(function (b) {
+      treffers.forEach(function (b, i) {
         lijst.appendChild(h('a', {
-          href: '#', onmousedown: function (ev) {
-            ev.preventDefault();
-            tekst.value = bandNaam(b); rc.value = String(b.afrolomtrek);
-            c[kant].band = tekst.value; c[kant].rc = rc.value;
-            lijst.classList.add('pbv-verborgen');
-            bijWijziging();
-          }
+          href: '#',
+          onmousedown: function (ev) { ev.preventDefault(); kies(b); },
+          onmousemove: function () { if (actief !== i) markeer(i); }
         }, h('span', {}, bandNaam(b)), h('span', { class: 'pbv-sub' }, fmtMm(b.afrolomtrek))));
       });
     }
+    // Pijltjes omhoog/omlaag door de lijst, Enter kiest, Escape sluit. Tab kiest niets en gaat gewoon door.
+    tekst.addEventListener('keydown', function (ev) {
+      var open = !lijst.classList.contains('pbv-verborgen');
+      if (ev.key === 'ArrowDown' || ev.key === 'ArrowUp') {
+        ev.preventDefault();
+        if (!open) { filter(); if (lijst.classList.contains('pbv-verborgen')) return; }
+        var n = treffers.length;
+        markeer(ev.key === 'ArrowDown' ? (actief + 1) % n : (actief <= 0 ? n - 1 : actief - 1));
+      } else if (ev.key === 'Enter') {
+        if (open && treffers.length) {
+          ev.preventDefault();
+          kies(treffers[actief >= 0 ? actief : 0]);
+          if (kant === 'achter') { var volgende = tekst.closest('.pbv-calc').querySelectorAll('.pbv-band input')[1]; if (volgende) volgende.focus(); }
+        }
+      } else if (ev.key === 'Escape') {
+        sluit();
+      }
+    });
     tekst.addEventListener('input', function () { c[kant].band = tekst.value; filter(); });
     tekst.addEventListener('focus', filter);
-    tekst.addEventListener('blur', function () { setTimeout(function () { lijst.classList.add('pbv-verborgen'); }, 150); });
+    tekst.addEventListener('blur', function () { setTimeout(sluit, 150); });
     rc.addEventListener('input', function () { c[kant].rc = rc.value; bijWijziging(); });
-    return h('div', { class: 'pbv-veld' },
+    var el = h('div', { class: 'pbv-veld' },
       h('label', {}, titel),
       h('div', { class: 'pbv-rij', style: 'grid-template-columns: 1fr 96px' },
         h('div', { class: 'pbv-band' }, tekst, lijst),
         h('div', {}, rc)));
+    el.kies = kies;
+    return el;
   }
 
   function bandNaam(b) { return [b.maat, b.merk, b.profiel].filter(Boolean).join(' '); }
@@ -582,9 +615,13 @@
     opties = opties || {};
     var c = S.calc;
     var uitkomstEl = h('div');
+    var passendEl = h('div');
     var bewaarEl = h('div');
+    var voorInvoer;
+    var alleTonen = false;
     function update() {
       leeg(uitkomstEl);
+      tekenPassend(berekenUitkomst(c));
       var u = berekenUitkomst(c);
       if (!(c.i > 0)) { uitkomstEl.appendChild(melding('Kies een uitvoering of vul een overbrengingsverhouding in.')); return; }
       if (u.voorloop === null) {
@@ -610,19 +647,36 @@
         rij('Ideale achterband (' + fmt(u.zones.doel, 1) + '%)', fmtMm(u.idealeAchter));
       }
       uitkomstEl.appendChild(h('div', { class: 'pbv-advies' }, dl));
-      if (u.ua) {
-        var passend = S.banden.filter(function (b) { return b.afrolomtrek >= u.voorMin && b.afrolomtrek <= u.voorMax; })
-          .sort(function (a, b) { return Math.abs(a.afrolomtrek - u.idealeVoor) - Math.abs(b.afrolomtrek - u.idealeVoor); }).slice(0, 6);
-        if (passend.length) {
-          uitkomstEl.appendChild(h('details', {}, h('summary', {}, 'Passende voorbanden uit de lijst (' + passend.length + ')'),
-            h('table', {}, h('tbody', {}, passend.map(function (b) {
-              var v = R.voorloop(u.i, b.afrolomtrek, u.ua);
-              return h('tr', {}, h('td', {}, bandNaam(b)), h('td', { class: 'pbv-getal' }, fmtMm(b.afrolomtrek)),
-                h('td', { class: 'pbv-getal' }, h('span', { class: 'pbv-badge ' + R.zone(v, u.zones) }, fmtProc(v))));
-            })))));
-        }
-      }
       tekenBewaar(bewaarEl, u);
+    }
+    // Voorbanden uit de lijst die bij deze achterband in het groene gebied vallen, dichtst bij de doelwaarde
+    // eerst. Klikken (of Enter) vult de voorband in.
+    function tekenPassend(u) {
+      leeg(passendEl);
+      if (!(c.i > 0) || !u.ua) return;
+      var passend = S.banden.filter(function (b) { return b.afrolomtrek >= u.voorMin && b.afrolomtrek <= u.voorMax; })
+        .sort(function (a, b) { return Math.abs(a.afrolomtrek - u.idealeVoor) - Math.abs(b.afrolomtrek - u.idealeVoor); });
+      if (!passend.length) {
+        passendEl.appendChild(h('p', { class: 'pbv-klein pbv-zacht' }, 'Geen voorbanden in de lijst die bij deze achterband in het groene gebied vallen.'));
+        return;
+      }
+      var zichtbaar = alleTonen ? passend : passend.slice(0, 6);
+      var gekozenRc = Math.round(R.getal(c.voor.rc) || 0);
+      passendEl.appendChild(h('div', { class: 'pbv-passend' },
+        h('div', { class: 'pbv-passend-kop' }, 'Passende voorbanden (' + passend.length + ')', h('span', {}, 'klik om te kiezen')),
+        h('table', {}, h('tbody', {}, zichtbaar.map(function (b) {
+          var v = R.voorloop(u.i, b.afrolomtrek, u.ua);
+          function kies() { voorInvoer.kies(b); }
+          return h('tr', {
+            class: 'klikbaar' + (c.voor.band === bandNaam(b) && gekozenRc === b.afrolomtrek ? ' gekozen' : ''),
+            tabindex: '0', onclick: kies,
+            onkeydown: function (ev) { if (ev.key === 'Enter' || ev.key === ' ') { ev.preventDefault(); kies(); } }
+          }, h('td', {}, bandNaam(b)), h('td', { class: 'pbv-getal pbv-nowrap' }, fmtMm(b.afrolomtrek)),
+            h('td', { class: 'pbv-getal' }, h('span', { class: 'pbv-badge ' + R.zone(v, u.zones) }, fmtProc(v))));
+        }))),
+        passend.length > 6 ? h('button', {
+          class: 'pbv-licht pbv-klein', onclick: function () { alleTonen = !alleTonen; tekenPassend(berekenUitkomst(c)); }
+        }, alleTonen ? 'Minder tonen' : 'Alle ' + passend.length + ' tonen') : null));
     }
     leeg(container);
     var blok = h('div', { class: 'pbv-blok pbv-calc' },
@@ -631,8 +685,9 @@
         h('div', { class: 'pbv-trekker' }, c.uitvoering ? ['Trekker: ', h('b', {}, c.trekker)] : 'Kies links een uitvoering.',
           c.uitvoering && c.uitvoering.status === 'twijfel' ? h('div', {}, h('span', { class: 'pbv-badge twijfel' }, 'Let op'), ' Deze verhouding is nog niet gecontroleerd.') : null),
       bandInvoer('achter', c, update),
-      bandInvoer('voor', c, update),
+      voorInvoer = bandInvoer('voor', c, update),
       h('p', { class: 'pbv-klein pbv-zacht' }, 'Kies een band uit de lijst of vul de afrolomtrek (mm) uit het databook in.'),
+      passendEl,
       uitkomstEl,
       bewaarEl
     );

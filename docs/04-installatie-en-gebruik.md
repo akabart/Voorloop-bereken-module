@@ -2,7 +2,7 @@
 
 ## Installeren
 
-1. Download `dist/polderbanden-voorloop-1.1.1.zip` uit deze repository.
+1. Download `dist/polderbanden-voorloop-1.1.2.zip` uit deze repository.
 2. Ga in WordPress naar **Plugins → Nieuwe plugin → Plugin uploaden**, kies het zip-bestand en klik
    op **Nu installeren** en daarna **Activeren**.
    - Lukt uploaden niet, pak de zip dan uit en zet de map `polderbanden-voorloop` met de
@@ -39,7 +39,8 @@ tabellen blijven bij verwijderen overigens bewaard.
 | Voorloop berekenen | Op de typepagina: kies een uitvoering en daarna de achter- en voorband uit de lijst, of vul de afrolomtrek in mm in. De uitkomst, het stoplicht en de ideale bandmaat verschijnen direct. |
 | Trekker staat er niet in | Gebruik **Losse berekening**. De verhouding kan direct, in Fendt-notatie (0,757), als JD-componenten of gemeten (omwentelingen) worden ingevoerd. |
 | Opslaan en printen | Onder de uitkomst: **Opslaan of printen**. Opgeslagen berekeningen staan onder **Opgeslagen** en zijn doorzoekbaar. |
-| Band zoeken | In de bandvelden van de calculator en in **Beheer → Bandenlijst**: typ de maat zoals je wilt, bijvoorbeeld `650/65 R38`, `65065r38` of alleen de cijfers `6506538`. Een merk of profiel erbij typen kan ook: `6506538 vred`. |
+| Band zoeken | In de bandvelden van de calculator en in **Beheer → Bandenlijst**: typ de maat zoals je wilt, bijvoorbeeld `650/65 R38`, `65065r38` of alleen de cijfers `6506538`. Een merk of profiel erbij typen kan ook: `6506538 vred`. Met de pijltjestoetsen loop je door de lijst en Enter kiest; na de achterband springt de cursor naar de voorband. |
+| Passende voorbanden | Zodra de achterband bekend is, staan onder de bandvelden de voorbanden uit de lijst die in het groene gebied vallen, de beste eerst. Klik op een band (of Enter) om hem als voorband in te vullen. |
 | Nieuwe banden | Een band die je bij een berekening intypt met een afrolomtrek, wordt automatisch aan de bandenlijst toegevoegd. |
 
 ### Beheer (met het beheerwachtwoord)
