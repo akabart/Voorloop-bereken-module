@@ -1,7 +1,7 @@
-# Plan (concept v0.2): voorloop-rekenmodule
+# Plan (v0.3): voorloop-rekenmodule
 
-*Status: concept v0.2 (29-09-2026), bijgewerkt met de antwoorden op de beslispunten. Die staan met
-het besluit in § 11; wat nog open is, staat in § 12. Achtergrond en onderbouwing: [01-vooronderzoek.md](01-vooronderzoek.md).*
+*Status: v0.3 (29-09-2026). Fase 1 t/m 3 zijn gebouwd (versie 1.0.0). Besluiten in § 11, openstaande
+punten in § 12. Achtergrond en onderbouwing: [01-vooronderzoek.md](01-vooronderzoek.md).*
 
 ## 1. Doel en succescriteria
 
@@ -258,21 +258,16 @@ Opzet:
 - **Ontwikkeling en test** gebeuren lokaal in een WordPress-testomgeving; jullie installeren de zip
   op de live site (of eerst op een staging-site als die er is).
 
-### 8.1 Toegang: wachtwoordpagina of WordPress-accounts?
+### 8.1 Toegang (besloten: eenvoudig wachtwoord en noindex)
 
-Een wachtwoord op de pagina plus *noindex* houdt zoekmachines en toevallige bezoekers weg, maar
-beschermt de **data** niet. De calculator haalt zijn gegevens op via de REST API, en die
-aanroepen vallen niet onder het paginawachtwoord. Bovendien kan de baas dan niets wijzigen zonder
-extra inlog.
-
-**Voorstel:** gewone WordPress-gebruikersaccounts met twee eigen rollen:
-
-- *Voorloop gebruiker*: zoeken, rekenen, berekeningen opslaan en printen;
-- *Voorloop beheerder*: daarnaast data, normzones, zichtbare velden en reviewlijst beheren.
-
-De pagina en de API zijn alleen bereikbaar voor ingelogde gebruikers met een van die rollen;
-anderen gaan naar het inlogscherm. Pagina's krijgen *noindex*. Dit kost collega's één keer een
-account aanmaken en is niet ingewikkelder in gebruik.
+- Er zijn twee wachtwoorden, in te stellen onder **Instellingen → Voorloop-module**: één voor
+  medewerkers en één voor beheer.
+- Na inloggen krijgt de browser een ondertekende cookie, 30 dagen geldig. Die cookie wordt bij
+  **elke API-aanroep** gecontroleerd, dus ook de gegevens zelf zijn afgeschermd en niet alleen de
+  pagina. Een gewijzigd wachtwoord maakt bestaande sessies ongeldig.
+- Er is een limiet op het aantal inlogpogingen (8 per 10 minuten per IP).
+- De pagina en de API sturen `noindex` mee en worden niet gecachet.
+- Ingelogde WordPress-beheerders hebben altijd beheerrechten.
 
 ## 9. Fasering
 
@@ -302,21 +297,21 @@ account aanmaken en is niet ingewikkelder in gebruik.
 |---|---|---|
 | **B1** | Gebruikers | Kantoor, op de pc |
 | **B2** | Platform | WordPress-plugin op de bestaande hosting (§ 8) |
-| **B3** | Toegang | Afgeschermd en noindex; voorstel WordPress-accounts met twee rollen (§ 8.1), nog te bevestigen |
+| **B3** | Toegang | Eenvoudig wachtwoord (medewerkers en beheer) en noindex (§ 8.1) |
 | **B4** | Wielaansluitmaten | Zoveel mogelijk meenemen; velden per stuk aan/uit te zetten |
 | **B5** | Bandendatabase | Niet nodig voor de start: je typt de afrolomtrek in. Afrolomtrekken die gebruikers invoeren kunnen wel meteen als bandenlijst bewaard worden; databooks volgen in fase 4 |
 | **B6** | Normzones | Voorstel akkoord als startwaarde; instelbaar door de beheerder, standaard en per merk |
-| **B7** | Opslaan en printen | Ja, in de MVP |
+| **B7** | Opslaan en printen | Ja, in de MVP: logo, klant, referentie, trekker, banden, uitkomst met stoplicht, advies, opmerking |
 | **B8** | Reviewlijst | De baas, via een reviewscherm in de module |
-| **B9** | Bronbestanden | Staan in de repository; de repository is nu nog **openbaar** (zie § 12) |
+| **B9** | Bronbestanden | Staan in `bronnen/`; de repository blijft openbaar (bewuste keuze) |
 | **B10** | Merken | Fendt, John Deere, Deutz-Fahr/SAME/Lamborghini, Massey Ferguson, New Holland, Case IH/Steyr; andere merken later via beheer of import |
 
 ## 12. Nog open
 
-1. **Repository privé maken.** De repository staat op *public*, dus iedereen kan de bronbestanden
-   downloaden. Zet hem via *Settings → General → Danger Zone → Change visibility* op *private*.
-2. **Toegang (B3):** akkoord met WordPress-accounts met twee rollen in plaats van één
-   paginawachtwoord?
-3. **Hosting:** welke hostingpartij en welke PHP-versie? Mag er een eigen plugin geïnstalleerd
-   worden, en is er een staging-omgeving?
-4. **Print:** welke gegevens moeten er op de print (klantnaam, referentie, logo, opmerkingen)?
+1. **Huisstijlkleuren.** polderbanden.nl was vanuit de ontwikkelomgeving niet bereikbaar. De kleuren
+   zijn daarom instelbaar onder **Instellingen → Voorloop-module**. De standaard is antraciet met
+   groen accent.
+2. **Hosting.** Teqz, PHP 8.2, geen testomgeving. De plugin is getest op WordPress 6.8 met PHP 8.4
+   en SQLite. Op de live site draait MySQL/MariaDB; controleer na installatie een paar berekeningen.
+3. **Reviewlijst.** 309 punten wachten op beoordeling door de vakinhoudelijk beheerder.
+4. **Fase 4 en 5.** Bandendatabase uitbreiden (databooks) en import van Excel en PDF.

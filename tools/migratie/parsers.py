@@ -88,8 +88,11 @@ def fendt_xls(ds, pad, bestand):
             }
             ruw = b.v(r, 11)
             opm = []
+            tweewiel = vooras is None or bool(re.search(r'\bHR\b|2WD', vooras))
+            if tweewiel and (ruw is None or getal(ruw) == 0):
+                basis['label'] = label(basis['label'], '2WD')
             if ruw is not None and getal(ruw) == 0:
-                if vooras in ('HR', None):
+                if tweewiel:
                     ruw = None          # tweewielaandrijving: geen verhouding
                 else:
                     opm.append('verhouding 0 in bron')

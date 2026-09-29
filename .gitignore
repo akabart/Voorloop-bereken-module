@@ -1,2 +1,5 @@
 # Tijdelijke Office-lockbestanden
 ~$*
+# Python
+__pycache__/
+*.pyc
