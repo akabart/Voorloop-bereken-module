@@ -2,7 +2,7 @@
 
 ## Installeren
 
-1. Download `dist/polderbanden-voorloop-1.0.2.zip` uit deze repository.
+1. Download `dist/polderbanden-voorloop-1.1.0.zip` uit deze repository.
 2. Ga in WordPress naar **Plugins → Nieuwe plugin → Plugin uploaden**, kies het zip-bestand en klik
    op **Nu installeren** en daarna **Activeren**.
    - Lukt uploaden niet, pak de zip dan uit en zet de map `polderbanden-voorloop` met de
@@ -49,12 +49,40 @@ tabellen blijven bij verwijderen overigens bewaard.
 | Reviewlijst | Twijfelgevallen uit de bronbestanden. Per punt kun je kiezen uit **Klopt**, **Aanpassen** (andere verhouding) of **Afwijzen** (verhouding leegmaken). De 243 punten waarbij alleen het decimaalteken is hersteld ("1353" → 1,353) zijn in één keer goed te keuren. |
 | Normzones | De grenzen voor rood, oranje, groen en optimaal, en de doelwaarde. Er is één standaardset, en per merk kan een afwijkende set worden ingesteld. |
 | Zichtbare velden | Kies welke gegevens op de trekkerkaart staan. |
-| Bandenlijst | Afrolomtrekken toevoegen of verwijderen. |
+| Bandenlijst | Afrolomtrekken toevoegen, zoeken, verwijderen of importeren uit een CSV (zie hieronder). |
 | Nieuwe trekker | Merk, serie en type met een eerste uitvoering. Bestaan merk of serie nog niet, dan worden ze aangemaakt. |
 | Wijzigingslog | Elke wijziging, met de oude en de nieuwe waarde. |
 
 Op een typepagina ziet de beheerder ook **Type bewerken**, **Bewerken** per uitvoering en
 **+ Uitvoering toevoegen**.
+
+## Banden importeren
+
+Onder **Beheer → Bandenlijst → Banden importeren** kies je een CSV-bestand met de kolommen `maat`,
+`merk`, `profiel` en `afrolomtrek` (eventueel ook `bron`). Scheidingsteken `;` of `,` mag allebei; een
+Excel-lijst sla je eerst op als CSV.
+
+Voordat er iets wordt opgeslagen, zie je per regel wat er gebeurt:
+
+| Status | Betekenis | Standaard |
+|---|---|---|
+| nieuw | Band staat nog niet in de lijst | aangevinkt |
+| andere afrolomtrek | Zelfde maat, merk en profiel met een andere waarde; wordt bijgewerkt | aangevinkt |
+| twijfel | Afrolomtrek past niet goed bij de maat, of er is geen merk | uit |
+| staat er al | Precies dezelfde band bestaat al | overgeslagen |
+| fout | Geen maat, of afrolomtrek niet tussen 1000 en 10000 mm | overgeslagen |
+
+Een PDF-catalogus van een fabrikant zet je eerst om naar zo'n CSV. Dat doe je met Claude Code in
+deze repository:
+
+1. Zet de PDF in `bronnen/banden/`.
+2. Vraag Claude: *"Importeer de banden uit bronnen/banden/<bestand>.pdf"*. Claude gebruikt dan de
+   skill `banden-import`. Die leest de PDF, controleert twijfelgevallen op de pagina zelf en zet een
+   gecontroleerde CSV naast de PDF.
+3. Importeer die CSV zoals hierboven.
+
+Als voorbeeld staat `bronnen/banden/eurogrip-2025-05.csv` klaar: 305 banden uit de Eurogrip-catalogus
+van mei 2025.
 
 ## Data exporteren
 
@@ -67,7 +95,10 @@ CSV-bestand dat direct in Excel opent.
   `plugin/polderbanden-voorloop/data/seed.json` en `docs/03-migratierapport.md`.
 - `tools/bouw-zip.sh` bouwt de installeerbare zip in `dist/`.
 - Tests van de rekenkern (PHP en JavaScript rekenen met dezelfde testgevallen):
-  `node tests/rekenkern.test.js` en `php tests/rekenkern.test.php`.
+  `node tests/rekenkern.test.js` en `php tests/rekenkern.test.php`. De bandmaatcontrole (JavaScript
+  en Python) wordt getest met `node tests/rekenkern.test.js` en `python3 tests/bandmaat.test.py`.
+- `tools/banden/` bevat de PDF-lezer voor bandencatalogi; de werkwijze staat in
+  `.claude/skills/banden-import/SKILL.md`.
 - **Startdata opnieuw inlezen** (onder de instellingen) vervangt alle trekkerdata en de reviewlijst
   door de inhoud van `seed.json`. Gebruik dat alleen na een nieuwe migratie; wijzigingen die in de
   module zelf zijn gedaan, gaan dan verloren.

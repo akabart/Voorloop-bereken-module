@@ -1037,6 +1037,7 @@
             .then(function (r) { S.banden = r.banden; route(); }).catch(function (e) { status.appendChild(melding(e.message, 'fout')); });
         }
       }, 'Toevoegen')));
+    el.appendChild(bandImportBlok());
     var zoek = h('input', { type: 'search', placeholder: 'Zoek in de bandenlijst, bijv. 6506538 of michelin' });
     var tbody = h('tbody');
     el.appendChild(h('div', { class: 'pbv-veld' }, zoek));
@@ -1070,6 +1071,168 @@
   }
 
   // -- formulieren voor types en uitvoeringen ---------------------------
+
+  /* ---- Banden importeren uit CSV (zie .claude/skills/banden-import voor PDF -> CSV) ---- */
+
+  /** Leest CSV-tekst: scheidingsteken ; , of tab (automatisch), aanhalingstekens, BOM. */
+  function leesCsv(tekst) {
+    tekst = String(tekst || '').replace(/^\uFEFF/, '');
+    var eerste = tekst.split(/\r?\n/)[0] || '';
+    var sep = [';', '\t', ','].sort(function (a, b) { return eerste.split(b).length - eerste.split(a).length; })[0];
+    var rijen = [], rij = [], veld = '', aanh = false;
+    for (var i = 0; i < tekst.length; i++) {
+      var c = tekst[i];
+      if (aanh) {
+        if (c === '"' && tekst[i + 1] === '"') { veld += '"'; i++; } else if (c === '"') aanh = false; else veld += c;
+      } else if (c === '"') aanh = true;
+      else if (c === sep) { rij.push(veld); veld = ''; }
+      else if (c === '\n' || c === '\r') {
+        if (c === '\r' && tekst[i + 1] === '\n') i++;
+        rij.push(veld); veld = '';
+        if (rij.some(function (v) { return v.trim() !== ''; })) rijen.push(rij);
+        rij = [];
+      } else veld += c;
+    }
+    rij.push(veld);
+    if (rij.some(function (v) { return v.trim() !== ''; })) rijen.push(rij);
+    return rijen;
+  }
+
+  var KOLOMNAMEN = {
+    maat: ['maat', 'bandmaat', 'size', 'tyre size', 'tire size', 'dimension', 'grosse', 'größe'],
+    merk: ['merk', 'brand', 'marke', 'fabrikant'],
+    profiel: ['profiel', 'pattern', 'profil', 'type', 'model'],
+    afrolomtrek: ['afrolomtrek', 'rc', 'rci', 'rolling circumference', 'abrollumfang', 'omtrek', 'afrolomtrek (mm)'],
+    bron: ['bron', 'source', 'quelle'],
+    controle: ['controle', 'opmerking', 'check']
+  };
+
+  function bandImportBlok() {
+    var bestand = h('input', { type: 'file', accept: '.csv,.txt,text/csv' });
+    var merkVeld = h('input', { type: 'text', placeholder: 'Alleen nodig als de CSV geen kolom merk heeft' });
+    var uitleg = h('p', { class: 'pbv-zacht pbv-klein' },
+      'CSV met de kolommen maat, merk, profiel, afrolomtrek (en eventueel bron). Scheidingsteken ; of , mag allebei. ',
+      'Uit Excel: Bestand → Opslaan als → CSV. Een PDF-catalogus eerst omzetten met de skill banden-import (zie de documentatie).');
+    var voorbeeld = h('div'), status = h('div');
+    var rijen = [], bestandsnaam = '', laatsteCsv = null;
+
+    function lees() {
+      leeg(voorbeeld); leeg(status);
+      var f = bestand.files && bestand.files[0];
+      if (!f) return;
+      bestandsnaam = f.name;
+      var r = new FileReader();
+      r.onload = function () { laatsteCsv = leesCsv(r.result); verwerk(laatsteCsv); };
+      r.readAsText(f, 'utf-8');
+    }
+
+    function verwerk(csv) {
+      if (csv.length < 2) { status.appendChild(melding('Het bestand bevat geen gegevens.', 'fout')); return; }
+      var kop = csv[0].map(function (k) { return k.trim().toLowerCase(); });
+      var kol = {};
+      Object.keys(KOLOMNAMEN).forEach(function (k) {
+        var i = kop.findIndex(function (x) { return KOLOMNAMEN[k].indexOf(x) >= 0; });
+        if (i >= 0) kol[k] = i;
+      });
+      if (kol.maat === undefined || kol.afrolomtrek === undefined) {
+        status.appendChild(melding('Kolommen maat en afrolomtrek niet gevonden. Gevonden kolommen: ' + csv[0].join(', '), 'fout'));
+        return;
+      }
+      var bestaand = {};
+      S.banden.forEach(function (b) {
+        var k = (b.maat + '|' + (b.merk || '') + '|' + (b.profiel || '')).toLowerCase();
+        (bestaand[k] = bestaand[k] || []).push(b.afrolomtrek);
+      });
+      var perSleutel = {};
+      rijen = csv.slice(1).map(function (v) {
+        function w(k) { return kol[k] === undefined ? '' : String(v[kol[k]] || '').trim(); }
+        var rij = {
+          maat: R.normaliseerMaat(w('maat')),
+          merk: w('merk') || merkVeld.value.trim(),
+          profiel: w('profiel'),
+          afrolomtrek: Math.round(R.getal(w('afrolomtrek')) || 0),
+          bron: w('bron'),
+          controle: w('controle')
+        };
+        var sleutel = (rij.maat + '|' + rij.merk + '|' + rij.profiel).toLowerCase();
+        perSleutel[sleutel] = (perSleutel[sleutel] || 0) + 1;
+        var oud = bestaand[sleutel] || [];
+        var p = R.bandPlausibel(rij.maat, rij.afrolomtrek);
+        if (!rij.maat || !(rij.afrolomtrek >= 1000 && rij.afrolomtrek <= 10000)) {
+          rij.status = 'fout'; rij.toelichting = !rij.maat ? 'Geen maat' : 'Afrolomtrek ontbreekt of ligt niet tussen 1000 en 10000 mm';
+        } else if (oud.indexOf(rij.afrolomtrek) >= 0) {
+          rij.status = 'ongewijzigd'; rij.toelichting = 'Staat al in de bandenlijst';
+        } else if (p.oordeel === 'twijfel') {
+          rij.status = 'twijfel'; rij.toelichting = 'Afrolomtrek past niet goed bij de maat (factor ' + fmt(p.factor, 3) + ', gebruikelijk is 0,94–0,99)';
+        } else if (oud.length === 1) {
+          rij.status = 'wijziging'; rij.toelichting = 'Nu ' + fmtMm(oud[0]);
+        } else {
+          rij.status = 'nieuw'; rij.toelichting = p.oordeel === 'onbekend' ? 'Maat niet herkend, niet gecontroleerd' : '';
+        }
+        if (!rij.merk && rij.status !== 'fout') { rij.status = 'twijfel'; rij.toelichting = 'Geen merk'; }
+        rij.sleutel = sleutel;
+        rij.aan = rij.status === 'nieuw' || rij.status === 'wijziging';
+        return rij;
+      });
+      rijen.forEach(function (r) {
+        if (perSleutel[r.sleutel] > 1 && r.status !== 'fout' && r.status !== 'ongewijzigd') {
+          r.toelichting = (r.toelichting ? r.toelichting + '. ' : '') + 'Deze band staat ' + perSleutel[r.sleutel] + ' keer in het bestand';
+        }
+      });
+      toon();
+    }
+
+    function toon() {
+      leeg(voorbeeld);
+      var telling = {};
+      rijen.forEach(function (r) { telling[r.status] = (telling[r.status] || 0) + 1; });
+      var namen = { nieuw: 'nieuw', wijziging: 'andere afrolomtrek', twijfel: 'twijfel', ongewijzigd: 'staat er al', fout: 'fout' };
+      var kleur = { nieuw: 'optimaal', wijziging: 'oranje', twijfel: 'oranje', ongewijzigd: '', fout: 'rood' };
+      var knop = h('button', { onclick: importeer });
+      function tel() {
+        var n = rijen.filter(function (r) { return r.aan; }).length;
+        knop.textContent = 'Importeer ' + n + ' band' + (n === 1 ? '' : 'en');
+        knop.disabled = !n;
+      }
+      voorbeeld.appendChild(h('p', {}, rijen.length + ' regels: ' + Object.keys(namen).filter(function (k) { return telling[k]; })
+        .map(function (k) { return telling[k] + ' ' + namen[k]; }).join(', ') + '. Twijfelgevallen staan uit; vink ze aan als ze kloppen.'));
+      var tbody = h('tbody');
+      rijen.forEach(function (r) {
+        var vink = h('input', { type: 'checkbox', checked: r.aan, disabled: r.status === 'fout' || r.status === 'ongewijzigd' });
+        vink.addEventListener('change', function () { r.aan = vink.checked; tel(); });
+        tbody.appendChild(h('tr', {},
+          h('td', {}, vink), h('td', { class: 'pbv-nowrap' }, r.maat), h('td', {}, r.merk), h('td', {}, r.profiel),
+          h('td', { class: 'pbv-getal' }, r.afrolomtrek ? fmtMm(r.afrolomtrek) : '–'),
+          h('td', {}, h('span', { class: 'pbv-badge ' + kleur[r.status] }, namen[r.status])),
+          h('td', { class: 'pbv-klein pbv-zacht' }, [r.toelichting, r.controle].filter(Boolean).join('. '))));
+      });
+      voorbeeld.appendChild(h('div', { style: 'max-height:60vh;overflow:auto;margin-bottom:1em' },
+        h('table', {}, h('thead', {}, h('tr', {}, ['', 'Maat', 'Merk', 'Profiel', 'Afrolomtrek', 'Status', 'Toelichting'].map(function (k) { return h('th', {}, k); }))), tbody)));
+      voorbeeld.appendChild(knop);
+      tel();
+    }
+
+    function importeer(ev) {
+      var knop = ev.currentTarget; knop.disabled = true;
+      leeg(status);
+      var te = rijen.filter(function (r) { return r.aan; }).map(function (r) {
+        return { maat: r.maat, merk: r.merk, profiel: r.profiel, afrolomtrek: r.afrolomtrek, bron: r.bron };
+      });
+      api('POST', '/banden/import', { rijen: te, bestand: bestandsnaam }).then(function (u) {
+        S.banden = u.banden;
+        S.importMelding = 'Import klaar: ' + u.nieuw + ' nieuw, ' + u.bijgewerkt + ' bijgewerkt, ' + u.ongewijzigd + ' ongewijzigd' + (u.fout ? ', ' + u.fout + ' fout' : '') + '.';
+        route();
+      }).catch(function (e) { knop.disabled = false; status.appendChild(melding(e.message, 'fout')); });
+    }
+
+    bestand.addEventListener('change', lees);
+    merkVeld.addEventListener('change', function () { if (laatsteCsv) { leeg(status); verwerk(laatsteCsv); } });
+    var klaar = S.importMelding ? melding(S.importMelding, 'ok') : null;
+    S.importMelding = null;
+    return h('div', { class: 'pbv-blok' }, h('h3', {}, 'Banden importeren'), uitleg, klaar,
+      h('div', { class: 'pbv-rij' }, veldBlok('CSV-bestand', bestand), veldBlok('Merk (optioneel)', merkVeld)),
+      status, voorbeeld);
+  }
 
   function tekstVeld(naam, waarde, ph) { return h('input', { type: 'text', value: waarde === null || waarde === undefined ? '' : String(waarde), placeholder: ph || '' }); }
   function veldBlok(label, input) { return h('div', { class: 'pbv-veld' }, h('label', {}, label), input); }

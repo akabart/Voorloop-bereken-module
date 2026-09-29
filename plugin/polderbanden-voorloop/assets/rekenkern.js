@@ -61,6 +61,47 @@
     return parseFloat(t);
   }
 
+  /* ---- Bandmaten (zelfde regels als tools/banden/bandmaat.py) ---- */
+  var PLAUSIBEL_MIN = 0.91, PLAUSIBEL_MAX = 1.02, INCH_MIN = 0.75, INCH_MAX = 1.0;
+  var METRISCH = /^(VF|IF|CFO|CHO)?\s*(\d{2,3})\/(\d{2})\s*(-|R|B|D)?\s*(\d{2}(?:\.\d)?)$/i;
+  var INCH = /^(VF|IF)?\s*(\d{1,2}(?:\.\d{1,2})?)\s*(-|R)\s*(\d{2}(?:\.\d)?)$/i;
+  var SLASH = /^(\d{1,2}(?:\.\d{1,2})?)\/(\d{2})\s*(-|R)\s*(\d{2}(?:\.\d)?)$/i;
+
+  /** '650/65R38' -> '650/65 R38', '18.4R38' -> '18.4 R38', '18.4-38' blijft (diagonaal). */
+  function normaliseerMaat(maat) {
+    var s = String(maat || '').trim().toUpperCase().replace(/,/g, '.').replace(/\s+/g, ' ').replace(/\*+$/, '').trim();
+    var m = s.match(METRISCH);
+    if (m) {
+      var sep = (m[4] || 'R').toUpperCase();
+      return (m[1] || '') + m[2] + '/' + m[3] + (sep === '-' ? '-' : ' ' + sep) + m[5];
+    }
+    m = s.match(INCH);
+    if (m) return (m[1] || '') + m[2] + (m[3].toUpperCase() === 'R' ? ' R' : '-') + m[4];
+    m = s.match(SLASH);
+    if (m) return m[1] + '/' + m[2] + (m[3].toUpperCase() === 'R' ? ' R' : '-') + m[4];
+    return s;
+  }
+
+  /** [min, max] theoretische buitendiameter in mm, of null als de maat niet herkend wordt. */
+  function diameterbereik(maat) {
+    var s = normaliseerMaat(maat), m, d;
+    if ((m = s.match(METRISCH))) { d = parseFloat(m[5]) * 25.4 + 2 * m[2] * m[3] / 100; return [d, d]; }
+    if ((m = s.match(SLASH))) { d = parseFloat(m[4]) * 25.4 + 2 * parseFloat(m[1]) * 25.4 * m[2] / 100; return [d, d]; }
+    if ((m = s.match(INCH))) {
+      var velg = parseFloat(m[4]) * 25.4, b = parseFloat(m[2]) * 25.4;
+      return [velg + 2 * INCH_MIN * b, velg + 2 * INCH_MAX * b];
+    }
+    return null;
+  }
+
+  /** Past de afrolomtrek bij de maat? { oordeel: 'ok' | 'twijfel' | 'onbekend', factor }. */
+  function bandPlausibel(maat, afrolomtrek) {
+    var r = diameterbereik(maat);
+    if (!r || !afrolomtrek) return { oordeel: 'onbekend', factor: null };
+    var ok = afrolomtrek >= PLAUSIBEL_MIN * Math.PI * r[0] && afrolomtrek <= PLAUSIBEL_MAX * Math.PI * r[1];
+    return { oordeel: ok ? 'ok' : 'twijfel', factor: Math.round(afrolomtrek / (Math.PI * (r[0] + r[1]) / 2) * 1000) / 1000 };
+  }
+
   return {
     ZONES: ZONES,
     voorloop: voorloop,
@@ -70,6 +111,9 @@
     uitFendt: uitFendt,
     uitMeting: uitMeting,
     zone: zone,
-    getal: getal
+    getal: getal,
+    normaliseerMaat: normaliseerMaat,
+    diameterbereik: diameterbereik,
+    bandPlausibel: bandPlausibel
   };
 });

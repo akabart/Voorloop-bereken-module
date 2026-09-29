@@ -176,7 +176,7 @@ class PBV_Installatie {
 			foreach ( array( 'merken', 'series', 'types', 'uitvoeringen', 'review' ) as $t ) {
 				$wpdb->query( 'DELETE FROM ' . self::tabel( $t ) ); // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared
 			}
-			$wpdb->query( 'DELETE FROM ' . self::tabel( 'banden' ) . " WHERE bron NOT LIKE 'Ingevoerd%'" ); // phpcs:ignore
+			$wpdb->query( 'DELETE FROM ' . self::tabel( 'banden' ) . " WHERE bron NOT LIKE 'Ingevoerd%' AND bron NOT LIKE 'Import%'" ); // phpcs:ignore
 		}
 		$nu       = current_time( 'mysql' );
 		$ref_naar = array();

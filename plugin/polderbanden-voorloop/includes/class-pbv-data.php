@@ -473,6 +473,57 @@ class PBV_Data {
 		return $id;
 	}
 
+	/**
+	 * Importeert banden uit een CSV (al gelezen en gecontroleerd in de browser).
+	 * Bestaat dezelfde maat + merk + profiel al met één afrolomtrek, dan wordt die bijgewerkt;
+	 * anders wordt de band toegevoegd. Geeft tellingen terug.
+	 */
+	public static function banden_importeren( array $rijen, $bestand ) {
+		global $wpdb;
+		if ( count( $rijen ) > 5000 ) {
+			return new WP_Error( 'pbv_ongeldig', 'Maximaal 5000 banden per import.', array( 'status' => 400 ) );
+		}
+		$tabel   = self::t( 'banden' );
+		$telling = array( 'nieuw' => 0, 'bijgewerkt' => 0, 'ongewijzigd' => 0, 'fout' => 0 );
+		$gezien  = array();
+		$nu      = current_time( 'mysql' );
+		foreach ( $rijen as $rij ) {
+			$maat    = trim( sanitize_text_field( (string) ( $rij['maat'] ?? '' ) ) );
+			$merk    = trim( sanitize_text_field( (string) ( $rij['merk'] ?? '' ) ) );
+			$profiel = trim( sanitize_text_field( (string) ( $rij['profiel'] ?? '' ) ) );
+			$rc      = (int) round( (float) str_replace( ',', '.', (string) ( $rij['afrolomtrek'] ?? 0 ) ) );
+			if ( '' === $maat || $rc < 1000 || $rc > 10000 ) {
+				$telling['fout']++;
+				continue;
+			}
+			$bron = 'Import: ' . sanitize_text_field( (string) ( $rij['bron'] ?? '' ) ?: $bestand );
+			$bron = mb_substr( $bron, 0, 250 );
+			$sleutel = strtolower( "$maat|$merk|$profiel" );
+			$bestaand = $wpdb->get_results( $wpdb->prepare(
+				"SELECT id, afrolomtrek FROM $tabel WHERE maat = %s AND merk = %s AND profiel = %s", // phpcs:ignore
+				$maat, $merk, $profiel
+			), ARRAY_A );
+			$zelfde = array_filter( $bestaand, function ( $b ) use ( $rc ) { return (int) $b['afrolomtrek'] === $rc; } );
+			if ( $zelfde ) {
+				$telling['ongewijzigd']++;
+			} elseif ( 1 === count( $bestaand ) && ! isset( $gezien[ $sleutel ] ) ) {
+				// Eén bestaande waarde en de eerste keer in deze import: bijwerken.
+				$wpdb->update( $tabel, array( 'afrolomtrek' => $rc, 'bron' => $bron ), array( 'id' => $bestaand[0]['id'] ) );
+				self::log( 'band', (int) $bestaand[0]['id'], "Band bijgewerkt via import: $maat $merk $profiel", array( 'afrolomtrek' => (int) $bestaand[0]['afrolomtrek'] ), array( 'afrolomtrek' => $rc ) );
+				$telling['bijgewerkt']++;
+			} else {
+				$wpdb->insert( $tabel, array(
+					'merk' => $merk, 'profiel' => $profiel, 'maat' => $maat, 'afrolomtrek' => $rc, 'bron' => $bron, 'aangemaakt' => $nu,
+				) );
+				$telling['nieuw']++;
+			}
+			$gezien[ $sleutel ] = true;
+		}
+		self::log( 'band', 0, sprintf( 'Banden geïmporteerd uit %s: %d nieuw, %d bijgewerkt, %d ongewijzigd, %d fout',
+			$bestand ?: 'CSV', $telling['nieuw'], $telling['bijgewerkt'], $telling['ongewijzigd'], $telling['fout'] ), null, null );
+		return $telling;
+	}
+
 	public static function band_verwijderen( $id ) {
 		global $wpdb;
 		$oud = $wpdb->get_row( $wpdb->prepare( 'SELECT * FROM ' . self::t( 'banden' ) . ' WHERE id = %d', $id ), ARRAY_A ); // phpcs:ignore

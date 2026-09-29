@@ -2,7 +2,7 @@
 /**
  * Plugin Name:       Polderbanden Voorloop
  * Description:       Interne module voor het opzoeken van overbrengingsverhoudingen van trekkers en het berekenen van de voorloop bij een bandencombinatie. Plaats de shortcode [polderbanden_voorloop] op een pagina.
- * Version:           1.0.2
+ * Version:           1.1.0
  * Requires at least: 6.0
  * Requires PHP:      8.0
  * Author:            Polderbanden.nl
@@ -11,7 +11,7 @@
 
 defined( 'ABSPATH' ) || exit;
 
-define( 'PBV_VERSIE', '1.0.2' );
+define( 'PBV_VERSIE', '1.1.0' );
 define( 'PBV_DB_VERSIE', '1' );
 define( 'PBV_BESTAND', __FILE__ );
 define( 'PBV_MAP', plugin_dir_path( __FILE__ ) );
